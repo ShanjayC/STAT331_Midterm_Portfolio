@@ -1,0 +1,13 @@
+project:
+  type: default
+format:
+  html:
+    embed-resources: true
+    code-tools: true
+    code-fold: true
+    code-summary: "Show/Hide Code"
+execute:
+  echo: true
+  warning: false
+  message: false
+editor: source
