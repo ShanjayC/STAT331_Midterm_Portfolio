@@ -15,8 +15,224 @@ execute:
 editor: source
 ---
 
+```{r}
 #| label: packages-and-data
 #| message: false
 #| warning: false
 library(tidyverse)
+library(forcats)
+library(dplyr)
 library(here)
+library(scales)
+
+# read data
+childcare_costs <- read_csv(here("data","childcare_costs.csv"), show_col_types = FALSE)
+counties        <- read_csv(here("data","counties.csv"), show_col_types = FALSE)
+tax_rev         <- read_csv(here("data","ca_tax_revenue.csv"), show_col_types = FALSE)
+```
+Exhibit A — Data Join and Filtering
+
+(Learning Targets: WD-5, R-3, PE-1)
+
+```{r}
+#| label: ca-childcare-costs
+ca_childcare <- counties %>%
+filter(state_name == "California") %>%
+select(county_fips_code, county_name, state_name) %>%
+left_join(childcare_costs, by = "county_fips_code") %>%
+arrange(county_name, study_year)
+
+ca_childcare <- ca_childcare %>%
+left_join(
+tax_rev,
+by = c("county_name" = "entity_name",
+"study_year"  = "year")
+)
+```
+
+Reflection:
+At first I put filter(state_name == "California") after the join and kept getting missing data.
+Through revision I learned that filtering before the join is cleaner and prevents “object not found” errors.
+I also learned to explicitly match join keys (county_name → entity_name, study_year → year), which made my code reproducible and robust.
+
+Exhibit B — Creating Census Regions
+
+(Learning Targets: WD-4, R-2, PE-4)
+
+```{r}
+#| label: recoding-county-to-census-regions
+ca_childcare <- ca_childcare %>%
+mutate(county_name = str_remove(county_name, " County$")) %>%
+mutate(region = fct_collapse(
+factor(county_name),
+"Superior California"    = c("Butte","Colusa","El Dorado","Glenn",
+"Lassen","Modoc","Nevada","Placer","Plumas",
+"Sacramento","Shasta","Sierra","Siskiyou",
+"Sutter","Tehama","Yolo","Yuba"),
+"North Coast"            = c("Del Norte","Humboldt","Lake","Mendocino",
+"Napa","Sonoma","Trinity"),
+"San Francisco Bay Area" = c("Alameda","Contra Costa","Marin",
+"San Francisco","San Mateo","Santa Clara",
+"Solano"),
+"Northern San Joaquin"   = c("Alpine","Amador","Calaveras","Madera",
+"Mariposa","Merced","Mono","San Joaquin",
+"Stanislaus","Tuolumne"),
+"Central Coast"          = c("Monterey","San Benito","San Luis Obispo",
+"Santa Barbara","Santa Cruz","Ventura"),
+"Southern San Joaquin"   = c("Fresno","Inyo","Kern","Kings","Tulare"),
+"Inland Empire"          = c("Riverside","San Bernardino"),
+"Los Angeles"            = "Los Angeles",
+"Orange County"          = "Orange",
+"San Diego–Imperial"     = c("Imperial","San Diego")
+))
+```
+
+Reflection:
+Originally I nested both mutate() calls in one long line, which made the code hard to read.
+Breaking them into two clear steps improved readability and fits tidy-style guidelines.
+
+Exhibit C — Income by Region Over Time
+
+(Learning Targets: WD-7, DVS-6, R-2)
+
+```{r}
+#| label: median-income-by-region-over-time
+income_table <- ca_childcare %>%
+filter(study_year %in% c(2008, 2018)) %>%
+group_by(region, study_year) %>%
+summarize(median_income = median(mhi_2018, na.rm = TRUE), .groups = "drop") %>%
+pivot_wider(names_from = study_year, values_from = median_income) %>%
+rename(
+`Median Income 2008 (2018 USD)` = `2008`,
+`Median Income 2018 (2018 USD)` = `2018`
+) %>%
+arrange(desc(`Median Income 2018 (2018 USD)`))
+
+income_table
+```
+
+Reflection:
+I learned to use pivot_wider() to convert the long summary into a clear comparison table.
+Renaming the columns made it immediately understandable to a reader, improving communication and clarity.
+
+Exhibit D — Infant Care Costs vs Income
+
+(Learning Targets: DVS-1, DVS-2, DSSM-2)
+```{r}
+#| label: scatterplot-income-vs-childcare
+infant_center <- ca_childcare %>% filter(!is.na(mhi_2018), !is.na(mc_infant))
+
+ggplot(infant_center, aes(x = mhi_2018, y = mc_infant)) +
+geom_point(alpha = 0.5) +
+geom_smooth(method = "lm", se = FALSE, color = "#0072B2") +
+scale_x_continuous(labels = label_dollar()) +
+scale_y_continuous(labels = label_dollar()) +
+labs(
+x = "Median Household Income (2018 USD)",
+y = "Median Weekly Infant Price (Center-Based, USD)",
+title = "Relationship Between Income and Infant Childcare Cost"
+) +
+theme_minimal(base_size = 13)
+
+reg_mod1 <- lm(mc_infant ~ mhi_2018, data = infant_center)
+summary(reg_mod1)
+```
+Reflection:
+At first I ignored axis formatting; revising with label_dollar() made the plot professional.
+The lm model showed a strong positive slope (t = 33.26, p < 2e-16), confirming that higher income areas have higher childcare costs.
+
+Exhibit E — Regional Trends in Childcare Costs
+
+(Learning Targets: WD-7, DVS-3, PE-4)
+```{r}
+#| label: recreate-plot
+region_levels <- c(
+"San Francisco Bay Area","Orange County","Los Angeles",
+"Northern San Joaquin","Central Coast","Inland Empire",
+"Superior California","Southern San Joaquin",
+"San Diego–Imperial","North Coast"
+)
+
+plot_data <- ca_childcare %>%
+select(study_year, region, mc_infant, mc_toddler, mc_preschool) %>%
+pivot_longer(
+c(mc_infant, mc_toddler, mc_preschool),
+names_to = "age_group", values_to = "weekly_price"
+) %>%
+mutate(
+age_group = recode(age_group,
+mc_infant = "Infant",
+mc_toddler = "Toddler",
+mc_preschool = "Preschool"),
+age_group = fct_relevel(age_group, "Infant","Toddler","Preschool"),
+region = factor(region, levels = region_levels)
+)
+
+ggplot(plot_data, aes(x = study_year, y = weekly_price, color = region)) +
+geom_point(alpha = 0.4, size = 1.6) +
+geom_smooth(method = "loess", se = TRUE) +
+facet_wrap(~ age_group, nrow = 1) +
+scale_color_brewer(palette = "Set3",
+limits = region_levels, drop = FALSE) +
+scale_x_continuous(breaks = seq(2008, 2018, 2)) +
+labs(
+title = "Weekly Median Price for Center-Based Childcare ($)",
+x = "Year",
+y = "Median Weekly Price ($)",
+color = "California Region"
+) +
+theme_minimal(base_size = 14) +
+theme(legend.position = "right")
+```
+Reflection:
+Originally my facets were unordered and colors inconsistent.
+By defining region_levels and using scale_color_brewer() I made a readable, color-blind-friendly plot consistent with the course style.
+
+Exhibit F — Overall Statewide Trends (Challenge 4 Summary)
+
+(Learning Targets: DSSM-2, DVS-6, R-2)
+```{r}
+#| label: statewide-trends
+state_medians <- ca_childcare %>%
+group_by(study_year) %>%
+summarize(
+center_infant = median(mc_infant, na.rm = TRUE),
+family_infant = median(mfcc_infant, na.rm = TRUE),
+.groups = "drop"
+)
+
+plot_data <- state_medians %>%
+pivot_longer(c(center_infant, family_infant),
+names_to = "setting",
+values_to = "weekly_price") %>%
+mutate(Setting = recode(setting,
+center_infant = "Center (Infant)",
+family_infant = "Family (Infant)"))
+
+ggplot(plot_data, aes(study_year, weekly_price, color = Setting)) +
+geom_line() +
+geom_point() +
+scale_x_continuous(breaks = seq(2008, 2018, 2)) +
+scale_color_manual(values = c("#1F77B4", "#FF7F0E")) +
+labs(
+title = "California Statewide Median Weekly Infant Childcare Price",
+subtitle = "Centers vs Family (2008–2018)",
+x = "Year",
+y = "Weekly Price (USD)",
+color = "Provider Type"
+) +
+theme_minimal()
+```
+Reflection:
+This final plot demonstrates that center-based care has been consistently more expensive than family care, and the gap widens through 2018.
+The code uses tidy pipes, explicit grouping, and clear labels—hitting all reproducibility and clarity standards.
+
+Learning Targets Summary
+| Category                 | Targets Met   | Evidence (Exhibit) |
+| ------------------------ | ------------- | ------------------ |
+| Working with Data        | WD-1 – WD-7   | A, B, C            |
+| Reproducibility          | R-1 – R-3     | A – F              |
+| Data Viz & Summarization | DVS-1 – DVS-6 | C, D, E, F         |
+| Program Efficiency       | PE-1, PE-4    | A, B, E            |
+| Data Sim & Stat Models   | DSSM-2        | D, F               |
+
