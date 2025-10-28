@@ -25,14 +25,16 @@ library(dplyr)
 library(here)
 library(scales)
 
-# read data
-childcare_costs <- read_csv(here("data","childcare_costs.csv"), show_col_types = FALSE)
-counties        <- read_csv(here("data","counties.csv"), show_col_types = FALSE)
-tax_rev         <- read_csv(here("data","ca_tax_revenue.csv"), show_col_types = FALSE)
+childcare_costs <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-05-09/childcare_costs.csv')
+
+counties <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-05-09/counties.csv')
+
+tax_rev <- read_csv('https://atheobold.github.io/groupworthy-data-science/labs/instructions/data/ca_tax_revenue.csv')
 ```
 Exhibit A — Data Join and Filtering
 
 (Learning Targets: WD-5, R-3, PE-1)
+Source: Challenge 4 Revised — Childcare Costs in California, Question 2: “Join County and Childcare Data”
 
 ```{r}
 #| label: ca-childcare-costs
@@ -51,13 +53,13 @@ by = c("county_name" = "entity_name",
 ```
 
 Reflection:
-At first I put filter(state_name == "California") after the join and kept getting missing data.
-Through revision I learned that filtering before the join is cleaner and prevents “object not found” errors.
-I also learned to explicitly match join keys (county_name → entity_name, study_year → year), which made my code reproducible and robust.
+Initially, I had placed the filter(state_name == "California") function after the join and kept getting missing data. After revising, I realized that filtering before the join is cleaner and prevents “object not found” errors. I also learned to join keys explicitly (county_name → entity_name, study_year → year), which made my code more robust and readable.
 
 Exhibit B — Creating Census Regions
 
 (Learning Targets: WD-4, R-2, PE-4)
+
+Source: Challenge 4 Revised — Childcare Costs in California, Question 4: “Create California Region Variable Using fct_collapse()”
 
 ```{r}
 #| label: recoding-county-to-census-regions
@@ -88,12 +90,12 @@ factor(county_name),
 ```
 
 Reflection:
-Originally I nested both mutate() calls in one long line, which made the code hard to read.
-Breaking them into two clear steps improved readability and fits tidy-style guidelines.
+Originally, I put both mutate() calls together in one long sequence, which made the code hard to read. By separating them into two clear steps, readability improved and the code now fits tidy-style guidelines.
 
 Exhibit C — Income by Region Over Time
 
 (Learning Targets: WD-7, DVS-6, R-2)
+Source: Challenge 4 Revised — Childcare Costs in California, Question 5: “Summarize Median Income by Region and Year”
 
 ```{r}
 #| label: median-income-by-region-over-time
@@ -112,12 +114,13 @@ income_table
 ```
 
 Reflection:
-I learned to use pivot_wider() to convert the long summary into a clear comparison table.
-Renaming the columns made it immediately understandable to a reader, improving communication and clarity.
+I learned how to use the pivot_wider() function to convert a long summary into a clear comparison table. By renaming the columns, the table became immediately more understandable to the reader, improving clarity and readability.
 
 Exhibit D — Infant Care Costs vs Income
 
 (Learning Targets: DVS-1, DVS-2, DSSM-2)
+
+Source: Challenge 4 Revised — Childcare Costs in California, Question 9: “Visualize and Model Relationship Between Income and Infant Childcare Cost”
 ```{r}
 #| label: scatterplot-income-vs-childcare
 infant_center <- ca_childcare %>% filter(!is.na(mhi_2018), !is.na(mc_infant))
@@ -138,12 +141,12 @@ reg_mod1 <- lm(mc_infant ~ mhi_2018, data = infant_center)
 summary(reg_mod1)
 ```
 Reflection:
-At first I ignored axis formatting; revising with label_dollar() made the plot professional.
-The lm model showed a strong positive slope (t = 33.26, p < 2e-16), confirming that higher income areas have higher childcare costs.
+Initially, I completely ignored axis formatting. Revising with label_dollar() made the plot look much more professional. The lm model expressed a strong positive slope with t = 33.26 and p < 2e-16, confirming that higher-income areas have higher childcare costs.
 
 Exhibit E — Regional Trends in Childcare Costs
 
 (Learning Targets: WD-7, DVS-3, PE-4)
+Source: Challenge 4 Revised — Childcare Costs in California, Question 7: “Compare Trends in Childcare Prices Across Regions and Age Groups”
 ```{r}
 #| label: recreate-plot
 region_levels <- c(
@@ -185,12 +188,12 @@ theme_minimal(base_size = 14) +
 theme(legend.position = "right")
 ```
 Reflection:
-Originally my facets were unordered and colors inconsistent.
-By defining region_levels and using scale_color_brewer() I made a readable, color-blind-friendly plot consistent with the course style.
+Initially, my facets were unordered and the colors inconsistent across the plots. By defining region_levels and using scale_color_brewer(), I made the plot more readable and color-blind-friendly, consistent with the course style.
 
 Exhibit F — Overall Statewide Trends (Challenge 4 Summary)
 
-(Learning Targets: DSSM-2, DVS-6, R-2)
+(Learning Targets: DSSM-2, DVS-6, R-2)?
+Source: Challenge 4 Revised — Childcare Costs in California, Question 11: “Calculate and Visualize Statewide Median Prices for Center vs Family Care”
 ```{r}
 #| label: statewide-trends
 state_medians <- ca_childcare %>%
@@ -224,9 +227,7 @@ color = "Provider Type"
 theme_minimal()
 ```
 Reflection:
-This final plot demonstrates that center-based care has been consistently more expensive than family care, and the gap widens through 2018.
-The code uses tidy pipes, explicit grouping, and clear labels—hitting all reproducibility and clarity standards.
-
+The final plot demonstrates that center-based care has been consistently more expensive than family care, and that the gap widened through 2018. The code uses tidy pipes, explicit grouping, and clear labels to make it more readable and reproducible.
 Learning Targets Summary
 | Category                 | Targets Met   | Evidence (Exhibit) |
 | ------------------------ | ------------- | ------------------ |
@@ -236,3 +237,33 @@ Learning Targets Summary
 | Program Efficiency       | PE-1, PE-4    | A, B, E            |
 | Data Sim & Stat Models   | DSSM-2        | D, F               |
 
+Midterm Reflection:
+At the beginning of the course, I frankly struggled to understand some of the programming concepts. I am fairly new to RStudio and was extremely confused about the submission requirements. I wrongly assumed the revisions were simply for getting additional feedback, and out of apathy and a stressful personal life, I decided not to submit many of them, missing out on a crucial way to grow in this class. I greatly apologize for this mistake and the others I have made. I promise to continue improving based on them.
+Throughout the last six weeks, I feel that I have greatly improved at making R code that is more reproducible and easier to read. I used to primarily focus on just getting the code to run, but now I think about why each step is structured a certain way, such as filtering before joins, naming variables clearly, and creating pivoted functions to reshape data effectively. I have also learned that clarity and communication in my code are imperative. Code needs to be as readable as possible, and I feel that I have demonstrated that throughout my work.
+Overall, I feel very confident going into the next period of this class, and I hope this portfolio shows that clearly.
+
+
+## Learning Targets Summary
+| Category                 | Targets Met   | Evidence (Exhibit) |
+| ------------------------ | ------------- | ------------------ |
+| Working with Data        | WD-1 – WD-7   | A, B, C            |
+| Reproducibility          | R-1 – R-3     | A – F              |
+| Data Viz & Summarization | DVS-1 – DVS-6 | C, D, E, F         |
+| Program Efficiency       | PE-1, PE-4    | A, B, E            |
+| Data Sim & Stat Models   | DSSM-2        | D, F               |
+
+
+Revising my thinking
+At the beginning of the course, I struggled immensely with trying to conceptualize the different concepts in order, and with the accompanying confusion about submission requirements, it seems that I learned some things backwards. I learned to filter before joining, use explicit join keys, and realized I didn’t have clear column names. But over time, I learned the proper ordering of things, renamed columns for clarity, reordered facets and legends to match color encoding, and formatted axes with proper labels such as currency. These revisions made my work much clearer and also much more reproducible for posterity.
+
+Extending my thinking
+On some of my assignments, I went above and beyond the minimal plots by adding linear models to quantify relationships, selecting color-blind-friendly palettes, and releveling factors to have more consistency in facet order. I also used loess smoothing to communicate trends across regions.
+
+Grade justification
+Based on the syllabus expectations and the artifacts provided:
+- Learning targets: Evidence for WD-1…WD-7, R-1…R-3, DVS-1…DVS-6, PE-1 & PE-4, and DSSM-2 is included with sources.
+- Revision: I documented concrete improvements that fixed errors and improved clarity.
+- Extension: I applied additional techniques (regression, factor ordering, accessible palettes).
+- Collaboration: I contributed and incorporated peer feedback.
+
+Requested grade: B (Good achievement), supported by the evidence above.
