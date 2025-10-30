@@ -1,0 +1,805 @@
+---
+title: "STAT 331 Portfolio"
+author: "Shanjay Chandraprakasam"
+format: html 
+embed-resources: true
+layout: margin-left
+editor: visual
+execute: 
+  eval: false
+  echo: true
+---
+
+[**My Grade:**]{.underline} I believe my grade equivalent to course work evidenced below to be an C+.
+
+[**Learning Objective Evidence:**]{.underline} In the code chunks below, provide code from Lab or Challenge assignments where you believe you have demonstrated proficiency with the specified learning target. Be sure to specify **where** the code came from (e.g., Lab 4 Question 2).
+
+## Working with Data
+
+**WD-1: I can import data from a *variety* of formats (e.g., csv, xlsx, txt, etc.).**
+
+-   `csv` Example 1
+
+```{r}
+#| label: wd-1-csv-1
+library(tidyverse)
+teacher_evals <- read_csv("data/teacher_evals.csv")
+
+
+```
+
+Source: Lab 3: Teacher Evaluations, Setup/Import section (Q1)
+
+-   `csv` Example 2
+
+```{r}
+#| label: wd-1-csv-2
+childcare_costs <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-05-09/childcare_costs.csv")
+counties <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-05-09/counties.csv")
+tax_rev <- read_csv("https://atheobold.github.io/groupworthy-data-science/labs/instructions/data/ca_tax_revenue.csv")
+
+```
+
+Source: Lab 4 / Challenge 4 (Childcare): Data import chunk at the top.
+
+-   `xlsx`
+
+```{r}
+#| label: wd-1-xlsx
+
+```
+
+**WD-2: I can select necessary columns from a dataset.**
+
+-   Example selecting specified columns
+
+```{r}
+#| label: wd-2-ex-1
+surveys %>% 
+  select(-record_id, -day, -hindfoot_length, -genus, -species, -taxon)
+```
+
+Source: Lab 2: Exploring Rodents
+
+-   Example removing specified columns
+
+```{r}
+#| label: wd-2-ex-2
+teacher_drop_ids <- teacher_evals %>%
+select(-instructor_id, -course_id)
+```
+
+\
+Source: Lab 3: Teacher Evaluations, data cleaning step where we removed ID columns before summarizing.
+
+-   Example selecting columns based on logical values (e.g., `starts_with()`, `ends_with()`, `contains()`, `where()`)
+
+```{r}
+#| label: wd-2-ex-3
+starts_cols <- teacher_evals %>% select(starts_with("eval_score_"))
+```
+
+Source: Lab 3: Teacher Evaluations, “Summarize multiple eval columns” **\
+**
+
+**WD-3: I can filter rows from a dataframe for a *variety* of data types (e.g., numeric, integer, character, factor, date).**
+
+-   Numeric Example 1
+
+```{r}
+#| label: wd-3-numeric-ex-1
+high_scores <- teacher_evals %>%
+filter(eval_score_overall >= 4.5)
+
+```
+
+Source: Lab 3: Teacher Evaluations, filtering for high-rated instructors.
+
+-   Numeric Example 2
+
+```{r}
+#| label: wd-3-numeric-ex-2
+infant_center <- ca_childcare %>%
+filter(!is.na(mhi_2018), !is.na(mc_infant))
+
+  
+
+```
+
+Source: Lab 4 (Childcare): Question 8
+
+-   Character Example 1 (any context)
+
+```{r}
+#| label: wd-3-character
+ca_childcare <- ca_childcare %>%
+mutate(county_name = str_remove(county_name, " County$"))
+
+#Source: Challenge 4 Revised — Exhibit B
+
+```
+
+Source: Challenge 4 (Childcare): Question 4
+
+-   Character Example 2 (example must use functions from **stringr**)
+
+```{r}
+#| label: wd-3-string
+
+```
+
+-   Date (example must use functions from **lubridate**)
+
+```{r}
+#| label: wd-3-date
+library(lubridate)
+amazon <- read_csv("data/AMZN.csv")
+amazon <- amazon %>% mutate(date = ymd(Date))
+recent_amzn <- amazon %>% filter(date >= ymd("2019-01-01"))
+```
+
+\
+Source: Challenge 3 (Time series / stock data)
+
+**WD-4: I can modify existing variables and create new variables in a dataframe for a *variety* of data types (e.g., numeric, integer, character, factor, date).**
+
+-   Numeric Example 1
+
+```{r}
+#| label: wd-4-numeric-ex-1
+ca_childcare <- ca_childcare %>%
+mutate(region = fct_collapse(
+factor(county_name),
+"Superior California" = c("Butte","Colusa","El Dorado","Glenn",
+"Lassen","Modoc","Nevada","Placer","Plumas",
+"Sacramento","Shasta","Sierra","Siskiyou",
+"Sutter","Tehama","Yolo","Yuba"),
+"North Coast" = c("Del Norte","Humboldt","Lake","Mendocino",
+"Napa","Sonoma","Trinity"),
+"San Francisco Bay Area" = c("Alameda","Contra Costa","Marin",
+"San Francisco","San Mateo","Santa Clara","Solano"),
+"Northern San Joaquin" = c("Alpine","Amador","Calaveras","Madera",
+"Mariposa","Merced","Mono","San Joaquin","Stanislaus","Tuolumne"),
+"Central Coast" = c("Monterey","San Benito","San Luis Obispo",
+"Santa Barbara","Santa Cruz","Ventura"),
+"Southern San Joaquin" = c("Fresno","Inyo","Kern","Kings","Tulare"),
+"Inland Empire" = c("Riverside","San Bernardino"),
+"Los Angeles" = "Los Angeles",
+"Orange County" = "Orange",
+"San Diego–Imperial" = c("Imperial","San Diego")
+))
+```
+
+Source: Challenge 4 (Childcare): Question 4
+
+-   Numeric Example 2
+
+```{r}
+#| label: wd-4-numeric-ex-2
+state_medians %>%
+  mutate(gap_center_minus_family = center_infant - family_infant)
+```
+
+Source: Challenge 4 (Childcare): Summary Table Creation
+
+-   Factor Example 1 (renaming levels)
+
+```{r}
+#| label: wd-4-factor-ex-1
+library(forcats)
+ca_childcare <- counties %>%
+filter(state_name == "California") %>%
+select(county_fips_code, county_name, state_name) %>%
+left_join(childcare_costs, by = "county_fips_code") %>%
+arrange(county_name, study_year) %>%
+mutate(county_name = str_remove(county_name, " County$")) %>%
+mutate(region = fct_collapse(
+factor(county_name),
+"Superior California" = c("Butte","Colusa","El Dorado","Glenn","Lassen","Modoc","Nevada","Placer","Plumas","Sacramento","Shasta","Sierra","Siskiyou","Sutter","Tehama","Yolo","Yuba"),
+"North Coast" = c("Del Norte","Humboldt","Lake","Mendocino","Napa","Sonoma","Trinity"),
+"San Francisco Bay Area" = c("Alameda","Contra Costa","Marin","San Francisco","San Mateo","Santa Clara","Solano"),
+"Northern San Joaquin" = c("Alpine","Amador","Calaveras","Madera","Mariposa","Merced","Mono","San Joaquin","Stanislaus","Tuolumne"),
+"Central Coast" = c("Monterey","San Benito","San Luis Obispo","Santa Barbara","Santa Cruz","Ventura"),
+"Southern San Joaquin" = c("Fresno","Inyo","Kern","Kings","Tulare"),
+"Inland Empire" = c("Riverside","San Bernardino"),
+"Los Angeles" = "Los Angeles",
+"Orange County" = "Orange",
+"San Diego–Imperial" = c("Imperial","San Diego")
+))
+```
+
+-   Factor Example 2 (reordering levels)
+
+```{r}
+#| label: wd-4-factor-ex-2
+
+```
+
+\
+Source: Constructed from Challenge 4 (Childcare) faceted plot
+
+-   Character (example must use functions from **stringr**)
+
+```{r}
+#| label: wd-4-string
+ca_childcare <- ca_childcare %>%
+mutate(county_name = str_remove(county_name, " County$"))
+```
+
+Source: Challenge 4 (Childcare): Question 4.
+
+-   Date (example must use functions from **lubridate**)
+
+```{r}
+#| label: wd-4-date
+amazon <- amazon %>% mutate(year = year(date), month = month(date, label = TRUE))
+```
+
+Source: Challenge 3 (Time series / stock data)
+
+**WD-5: I can use mutating joins to combine multiple dataframes.**
+
+-   `left_join()` Example 1
+
+```{r}
+#| label: wd-5-left-ex-1
+ca_childcare <- ca_childcare %>%
+left_join(tax_rev, by = c("county_name" = "entity_name", "study_year" = "year"))
+```
+
+Source: Lab 4 / Challenge 4 (Childcare): Question 2
+
+-   `right_join()` Example 1
+
+```{r}
+#| label: wd-5-right
+
+```
+
+-   `left_join()` **or** `right_join()` Example 2
+
+```{r}
+#| label: wd-5-left-right-ex-2
+
+```
+
+-   `inner_join()` Example 1
+
+```{r}
+#| label: wd-5-inner-ex-1
+
+```
+
+-   `inner_join()` Example 2
+
+```{r}
+#| label: wd-5-inner-ex-2
+
+```
+
+**WD-6: I can use filtering joins to filter rows from a dataframe.**
+
+-   `semi_join()`
+
+```{r}
+#| label: wd-6-semi
+
+```
+
+-   `anti_join()`
+
+```{r}
+#| label: wd-6-anti
+
+```
+
+**WD-7: I can pivot dataframes from long to wide and visa versa**
+
+-   `pivot_longer()`
+
+```{r}
+#| label: wd-7-long
+price_long <- ca_childcare %>%
+select(study_year, region, mc_infant, mc_toddler, mc_preschool) %>%
+pivot_longer(c(mc_infant, mc_toddler, mc_preschool),
+names_to = "age_group", values_to = "weekly_price")
+```
+
+Source: Challenge 4 (Childcare): Question 7
+
+-   `pivot_wider()`
+
+```{r}
+#| label: wd-7-wide
+income_table <- ca_childcare %>%
+filter(study_year %in% c(2008, 2018)) %>%
+group_by(region, study_year) %>%
+summarize(median_income = median(mhi_2018, na.rm = TRUE), .groups = "drop") %>%
+pivot_wider(names_from = study_year, values_from = median_income)
+```
+
+Source: Challenge 4 (Childcare): Question 7
+
+## Reproducibility
+
+**R-1: I can create professional looking, reproducible analyses using RStudio projects, Quarto documents, and the here package.**
+
+The following assignments satisfy the above criteria:
+
+-   Lab 1
+-   Lab 2
+-   Lab 3
+-   Lab 4
+-   Challenge 1
+
+**R-2: I can write well documented and tidy code.**
+
+-   Example of **ggplot2** plotting
+
+```{r}
+#| label: r-2-1
+ggplot(amazon, aes(date, Close)) +
+geom_line() +
+labs(title = "AMZN Closing Price", x = "Date", y = "USD") +
+theme_minimal()
+```
+
+Source: Challenge 4 (Childcare): Question 2.
+
+-   Example of **dplyr** pipeline
+
+```{r}
+#| label: r-2-2
+ca_childcare <- counties %>%
+filter(state_name == "California") %>%
+select(county_fips_code, county_name) %>%
+left_join(childcare_costs, by = "county_fips_code")
+
+state_medians <- ca_childcare %>%
+group_by(study_year) %>%
+summarize(center_infant = median(mc_infant, na.rm = TRUE),
+family_infant = median(mfcc_infant, na.rm = TRUE),
+.groups = "drop")
+```
+
+\
+Source: Challenge 4 (Childcare): Question 5.
+
+-   Example of function formatting
+
+```{r}
+#| label: r-2-3
+
+```
+
+**R-3: I can write robust programs that are resistant to changes in inputs.**
+
+-   Example (any context)
+
+```{r}
+#| label: r-3-example
+
+```
+
+-   Example (function stops)
+
+```{r}
+#| label: r-3-function-stops
+
+```
+
+## Data Visualization & Summarization
+
+**DVS-1: I can create visualizations for a *variety* of variable types (e.g., numeric, character, factor, date)**
+
+-   At least two numeric variables
+
+```{r}
+#| label: dvs-1-num
+library(scales)
+infant_center <- ca_childcare %>% filter(!is.na(mhi_2018), !is.na(mc_infant))
+ggplot(infant_center, aes(mhi_2018, mc_infant)) +
+geom_point(alpha = 0.5) +
+geom_smooth(method = "lm", se = FALSE) +
+scale_x_continuous(labels = label_dollar()) +
+scale_y_continuous(labels = label_dollar())
+```
+
+Source: Lab 4: Question 8
+
+-   At least one numeric variable and one categorical variable
+
+```{r}
+#| label: dvs-2-num-cat
+ggplot(teacher_evals, aes(gender, eval_score_overall)) +
+geom_boxplot() +
+labs(x = "Gender", y = "Overall Evaluation Score")
+```
+
+Source: Lab 3: Teacher evaluations plotting
+
+-   At least two categorical variables
+
+```{r}
+#| label: dvs-2-cat
+ggplot2::ggplot(teacher_evals_compare, ggplot2::aes(x = sen_level, fill = SET_level)) +
+  ggplot2::geom_bar(position = "fill", width = 0.9)
+```
+
+\
+Source: Challenge 3: Teacher evaluations plotting
+
+-   Dates (time series plot)
+
+```{r}
+#| label: dvs-2-date
+ggplot(amazon, aes(date, Close)) +
+geom_line() +
+scale_x_date(date_breaks = "6 months", date_labels = "%Y-%m")
+```
+
+Source: Challenge 3 (Stock/time series): time series plot.
+
+**DVS-2: I use plot modifications to make my visualization clear to the reader.**
+
+-   I can modify my plot theme to be more readable
+
+```{r}
+#| label: dvs-2-ex-1
+labs(
+  title = "California Statewide Median Weekly Infant Childcare Price",
+  subtitle = "Centers vs. Family (in-home), 2008–2018",
+  x = "Year",
+  y = "Weekly Price (USD)",
+  color = "Provider Type"
+)
+```
+
+Source: Challenge 4 (Childcare): Question 7.
+
+-   I can modify my colors to be accessible to anyone's eyes
+
+```{r}
+#| label: dvs-2-ex-2
+region_levels <- c("San Francisco Bay Area","Orange County","Los Angeles",
+"Northern San Joaquin","Central Coast","Inland Empire",
+"Superior California","Southern San Joaquin",
+"San Diego–Imperial","North Coast")
+plot_data <- ca_childcare %>%
+select(study_year, region, mc_infant, mc_toddler, mc_preschool) %>%
+pivot_longer(c(mc_infant, mc_toddler, mc_preschool),
+names_to = "age_group", values_to = "weekly_price") %>%
+mutate(age_group = recode(age_group,
+mc_infant = "Infant",
+mc_toddler = "Toddler",
+mc_preschool = "Preschool"),
+age_group = fct_relevel(age_group, "Infant","Toddler","Preschool"),
+region = factor(region, levels = region_levels))
+
+
+
+
+ggplot(plot_data, aes(study_year, weekly_price, color = region)) +
+geom_point(alpha = 0.4, size = 1.6) +
+geom_smooth(method = "loess", se = TRUE) +
+facet_wrap(~ age_group, nrow = 1) +
+scale_color_brewer(palette = "Set3", limits = region_levels, drop = FALSE) +
+theme_minimal(base_size = 14)
+```
+
+Source: Challenge 4 (Childcare): Question 7.
+
+-   I can modify my plot titles to clearly communicate the data context
+
+```{r}
+#| label: dvs-2-ex-3
+
+```
+
+-   I can modify the text in my plot to be more readable
+
+```{r}
+#| label: dvs-2-ex-4
+theme(
+  plot.title = element_text(size = 14, face = "bold"),
+  axis.text.x = element_text(angle = 45, hjust = 1) 
+)
+```
+
+Lab 2: Q15 and Challenge 2: Spicy Option
+
+-   I can reorder my legend to align with the colors in my plot
+
+```{r}
+#| label: dvs-2-ex-5
+plot_data <- plot_data %>%
+  mutate(
+    age_group = forcats::fct_relevel(age_group, "Infant","Toddler","Preschool")
+  )
+```
+
+\
+Source: Lab 4: Childcare Costs Q7
+
+**DVS-3: I show creativity in my visualizations**
+
+-   I can use non-standard colors (Example 1)
+
+```{r}
+#| label: dvs-3-1-ex-1
+ggplot(plot_data, aes(study_year, weekly_price, color = region)) +
+geom_point(alpha = 0.4) +
+geom_smooth(method = "loess", se = TRUE)
+```
+
+-   I can use non-standard colors (Example 2)
+
+```{r}
+#| label: dvs-3-1-ex-2
+ggplot(amazon, aes(date, Close)) +
+geom_line() +
+annotate("rect", xmin = as.Date("2020-02-15"), xmax = as.Date("2020-04-15"),
+ymin = -Inf, ymax = Inf, alpha = 0.1)
+```
+
+-   I can use annotations (e.g., `geom_text()`)
+
+```{r}
+#| label: dvs-3-2
+
+```
+
+-   I can choose creative geometries (e.g., `geom_segment()`, `geom_ribbon)()`)
+
+```{r}
+#| label: dvs-3-3
+
+```
+
+**DVS-4: I can calculate numerical summaries of variables.**
+
+-   Example using `summarize()`
+
+```{r}
+#| label: dvs-4-summarize
+division_summary
+```
+
+Source: Lab 3: Teacher Evaluations, grouped summaries.
+
+-   Example using `across()`
+
+```{r}
+#| label: dvs-4-across
+teacher_evals %>%
+group_by(division) %>%
+summarize(across(starts_with("eval_score_"), ~ mean(.x, na.rm = TRUE)))
+```
+
+Source: Lab 3: Teacher Evaluations, grouped summaries.
+
+**DVS-5: I can find summaries of variables across multiple groups.**
+
+-   Example 1
+
+```{r}
+#| label: dvs-5-1
+
+```
+
+-   Example 2
+
+```{r}
+#| label: dvs-5-2
+teacher_evals %>%
+group_by(gender, division) %>%
+summarize(avg_overall = mean(eval_score_overall, na.rm = TRUE), .groups = "drop")
+```
+
+Source: Lab 3: Teacher Evaluations, two-way summaries.
+
+**DVS-6: I can create tables which make my summaries clear to the reader.**
+
+-   I can modify my column names to clearly communicate the data context
+
+```{r}
+#| label: dvs-6-ex-1
+income_table %>%
+rename(Median Income 2008 (2018 USD) = 2008,
+Median Income 2018 (2018 USD) = 2018) %>%
+arrange(desc(Median Income 2018 (2018 USD)))
+```
+
+Source: Challenge 4 (Childcare): Question 5.
+
+-   I can modify the text in my table to be more readable (e.g., bold face for column headers)
+
+```{r}
+#| label: dvs-6-ex-2
+
+```
+
+-   I can arrange my table to have an intuitive ordering
+
+```{r}
+#| label: dvs-6-ex-3
+
+```
+
+**DVS-7: I show creativity in my tables.**
+
+-   I can use non-default colors
+
+```{r}
+#| label: dvs-7-ex-1
+
+```
+
+-   I can modify the layout of my table to be more readable (e.g., `pivot_longer()` or `pivot_wider()`)
+
+```{r}
+#| label: dvs-7-ex-2
+
+```
+
+## Program Efficiency
+
+**PE-1: I can write concise code which does not repeat itself.**
+
+-   using a single function call with multiple inputs (rather than multiple function calls)
+
+```{r}
+#| label: pe-1-one-call
+teacher_evals %>%
+group_by(division) %>%
+summarize(across(starts_with("eval_score_"), ~ mean(.x, na.rm = TRUE)))
+```
+
+Source: Lab 3: Teacher Evaluations, multiple eval columns.
+
+-   using `across()`
+
+```{r}
+#| label: pe-1-across
+
+```
+
+-   using functions from the `map()` family
+
+```{r}
+#| label: pe-1-map-1
+
+```
+
+**PE-2: I can write functions to reduce repetition in my code.**
+
+-   Example 1: Function that operates on vectors
+
+```{r}
+#| label: pe-2-1
+
+```
+
+-   Example 2: Function that operates on data frames
+
+```{r}
+#| label: pe-2-2
+
+```
+
+-   Example 3: Function that operates on vectors *or* data frames
+
+```{r}
+#| label: pe-2-3
+
+```
+
+**PE-3:I can use iteration to reduce repetition in my code.**
+
+-   using `across()`
+
+```{r}
+#| label: pe-3-across
+
+```
+
+-   using a `map()` function with **one** input (e.g., `map()`, `map_chr()`, `map_dbl()`, etc.)
+
+```{r}
+#| label: pe-3-map-1
+
+```
+
+-   using a `map()` function with **more than one** input (e.g., `map_2()` or `pmap()`)
+
+```{r}
+#| label: pe-3-map-2
+
+```
+
+**PE-4: I can use modern tools when carrying out my analysis.**
+
+-   I can use functions which are not superseded or deprecated
+
+```{r}
+#| label: pe-4-1
+ca_childcare %>%
+select(study_year, region, mc_infant) %>%
+group_by(study_year, region) %>%
+summarize(med = median(mc_infant, na.rm = TRUE), .groups = "drop") %>%
+ggplot(aes(study_year, med, color = region)) +
+geom_line() +
+theme_minimal()
+```
+
+Source: Challenge 4 (Childcare): Question 7.
+
+-   I can connect a data wrangling pipeline into a `ggplot()`
+
+```{r}
+#| label: pe-4-2
+
+```
+
+## Data Simulation & Statistical Models
+
+**DSSM-1: I can simulate data from a *variety* of probability models.**
+
+-   Example 1
+
+```{r}
+#| label: dsm-1-1
+```
+
+-   Example 2
+
+```{r}
+#| label: dsm-1-2
+
+```
+
+**DSSM-2: I can conduct common statistical analyses in R.**
+
+-   Example 1
+
+```{r}
+#| label: dsm-2-1
+reg_mod1 <- lm(mc_infant ~ mhi_2018, data = infant_center)
+summary(reg_mod1)
+```
+
+Source: Challenge 4 (Childcare): Question 9.
+
+-   Example 2
+
+```{r}
+#| label: dsm-2-2
+aov_mod <- aov(Close ~ month, data = amazon)
+summary(aov_mod)
+TukeyHSD(aov_mod)
+```
+
+-   Example 3
+
+```{r}
+#| label: dsm-2-3
+
+```
+
+## Revising My Thinking
+
+At the beginning of the course, I struggled immensely with trying to conceptualize the different concepts in order, and with the accompanying confusion about submission requirements, it seems that I learned some things backwards. I learned to filter before joining, use explicit join keys, and realized I didn’t have clear column names. But over time, I learned the proper ordering of things, renamed columns for clarity, reordered facets and legends to match color encoding, and formatted axes with proper labels such as currency. These revisions made my work much clearer and also much more reproducible for posterity.
+
+## Extending My Thinking
+
+On some of my assignments, I went above and beyond the minimal plots by adding linear models to quantify relationships, selecting color-blind-friendly palettes, and releveling factors to have more consistency in facet order. I also used loess smoothing to communicate trends across regions.
+
+## Peer Support & Collaboration
+
+<!-- Include an image or a description of feedback you gave that you are proud of (either in a peer review or in Discord). -->\
+\
+I feel like one of the best feedback that I gave to a person in the class was for Arturo. I complimented his ability to use code concisely but also critiqued his ability to structure the code to be better to look at and observe for those who wish to reproduce it.
+
+<!-- Include a description of how you grew as a collaborator through the weekly pair programming activities.   -->
+
+I worked with Natalie Masarova two times in a row. I could feel that between each time, both of us had gotten a lot more fluent at being the typists and also the code readers. Over those two sessions, we were able to discern when it was necessary to speak and communicate the most integral code directions, and when it was a good idea to step back and let the other take the reins for a little bit, leading to things falling into place much more fluently and efficiently than before.
